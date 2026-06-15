@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Controle de faturas</title>
+    <style>
+      :root {
+        --bg: #eaf1f7;
+        --surface: rgba(255,255,255,.64);
+        --ink: #17202a;
+        --muted: #64748b;
+        --line: rgba(255,255,255,.72);
+        --accent: #0f766e;
+        --danger: #b42318;
+        --warning: #b54708;
+        --ok: #027a48;
+        --shadow: 0 24px 70px rgba(28,40,56,.18);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(15,118,110,.2), transparent 34%),
+          radial-gradient(circle at 82% 12%, rgba(89,121,255,.16), transparent 30%),
+          linear-gradient(135deg, #eef6fb 0%, #e8f0f7 45%, #f8fbff 100%);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      button, textarea { font: inherit; }
+      button { cursor: pointer; }
+      .shell { display: grid; grid-template-columns: 250px minmax(0,1fr); min-height: 100svh; }
+      aside {
+        position: sticky; top: 0; height: 100svh; padding: 22px 18px;
+        background: linear-gradient(180deg, rgba(17,24,39,.82), rgba(15,23,42,.72));
+        color: #fff; border-right: 1px solid rgba(255,255,255,.15);
+        box-shadow: 18px 0 60px rgba(15,23,42,.2); backdrop-filter: blur(18px);
+      }
+      .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+      .mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 8px; background: var(--accent); font-weight: 800; }
+      .brand span { display: block; color: #aeb8c6; font-size: 12px; }
+      nav { display: grid; gap: 6px; }
+      nav button { border: 0; border-radius: 8px; padding: 11px 12px; background: transparent; color: #cbd5e1; text-align: left; }
+      nav .active, nav button:hover { background: rgba(255,255,255,.09); color: #fff; }
+      main { min-width: 0; padding: 28px; display: grid; gap: 18px; }
+      .topbar, .strip, .kpis, .main-grid, .detail-grid, .panel-title, .actions { display: grid; }
+      .topbar { grid-template-columns: 1fr auto; align-items: center; gap: 16px; }
+      h1, h2, p { margin: 0; }
+      h1 { font-size: 30px; line-height: 1.14; }
+      h2 { font-size: 16px; }
+      .eyebrow { margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .primary, .ghost, .actions button {
+        min-height: 38px; border-radius: 8px; padding: 0 14px; border: 1px solid rgba(255,255,255,.72);
+      }
+      .primary { background: var(--accent); color: #fff; }
+      .ghost, .actions button { background: rgba(255,255,255,.7); color: var(--ink); }
+      .strip { grid-template-columns: repeat(4,1fr); gap: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(235,250,248,.62); padding: 14px; backdrop-filter: blur(16px); }
+      .strip span, .kpi span, .panel-title span { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .strip strong { display: block; margin-top: 5px; font-size: 13px; }
+      .kpis { grid-template-columns: repeat(4,1fr); gap: 14px; }
+      .kpi, .panel {
+        min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, rgba(255,255,255,.72), rgba(255,255,255,.48));
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.84); backdrop-filter: blur(18px);
+      }
+      .kpi { padding: 18px; display: grid; gap: 8px; }
+      .kpi strong { font-size: 24px; }
+      .kpi p { color: var(--muted); font-size: 13px; }
+      .alert { border-color: rgba(255,212,199,.9); background: rgba(255,247,244,.68); }
+      .panel { padding: 18px; overflow: hidden; }
+      .panel-title { grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 14px; }
+      .main-grid { grid-template-columns: 1.3fr .7fr; gap: 14px; }
+      .detail-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { border-bottom: 1px solid rgba(90,105,125,.18); padding: 10px; text-align: left; vertical-align: top; }
+      th { color: #344054; background: rgba(241,245,249,.72); text-transform: uppercase; font-size: 12px; }
+      .money, .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .risk { display: inline-flex; border-radius: 999px; min-width: 70px; justify-content: center; padding: 3px 8px; font-weight: 800; font-size: 12px; }
+      .Alto { color: var(--danger); background: #fff1ed; }
+      .Medio { color: var(--warning); background: #fff7e8; }
+      .Baixo { color: var(--ok); background: #ecfdf3; }
+      .Controle { color: #475467; background: #f2f4f7; }
+      .actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+      textarea { width: 100%; min-height: 170px; border: 1px solid rgba(255,255,255,.72); border-radius: 8px; padding: 12px; resize: vertical; background: rgba(255,255,255,.7); }
+      @media(max-width: 1000px) { .shell, .main-grid, .detail-grid, .strip, .kpis { grid-template-columns: 1fr; } aside { position: static; height: auto; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand"><div class="mark">CF</div><div><strong>Controle de faturas</strong><span>Jhordania Ops</span></div></div>
+        <nav><button class="active">Faturas</button><button>OPEX</button><button>E-mails</button><button>Auditoria</button></nav>
+      </aside>
+      <main>
+        <header class="topbar">
+          <div><p class="eyebrow" id="context">Carregando</p><h1>Controle de faturas</h1></div>
+          <button class="primary" onclick="loadData()">Atualizar</button>
+        </header>
+        <section class="strip">
+          <div><span>Status</span><strong id="status">-</strong></div>
+          <div><span>Critério</span><strong>Linha a linha, sem total final</strong></div>
+          <div><span>Thread</span><strong id="thread">-</strong></div>
+          <div><span>Banco</span><strong>SQLite atualizado via n8n</strong></div>
+        </section>
+        <section class="kpis">
+          <article class="kpi"><span>Total labor</span><strong id="labor">R$ 0,00</strong><p>Contexto da fatura</p></article>
+          <article class="kpi alert"><span>Hora extra</span><strong id="he">R$ 0,00</strong><p>Validar contra OPEX e feriados</p></article>
+          <article class="kpi"><span>OTHERS</span><strong id="others">R$ 0,00</strong><p>Aberto por item</p></article>
+          <article class="kpi"><span>Decisões</span><strong id="decisions">0</strong><p>Histórico registrado</p></article>
+        </section>
+        <section class="main-grid">
+          <section class="panel"><div class="panel-title"><h2>OPEX x Fatura</h2><span id="comparison-count">0 linhas</span></div><div id="comparison"></div></section>
+          <section class="panel">
+            <div class="panel-title"><h2>Responder e-mail</h2><span>via n8n</span></div>
+            <div class="actions">
+              <button onclick="decision('approve')">De acordo</button>
+              <button onclick="decision('request_he')">Solicitar HE</button>
+              <button onclick="decision('request_docs')">Esclarecimentos</button>
+              <button onclick="decision('reject')">Rejeitar</button>
+            </div>
+            <br />
+            <textarea id="draft"></textarea>
+          </section>
+        </section>
+        <section class="detail-grid">
+          <section class="panel"><div class="panel-title"><h2>Hora extra</h2><span>Causa raiz</span></div><div id="overtime"></div></section>
+          <section class="panel"><div class="panel-title"><h2>OTHERS</h2><span>Detalhado</span></div><div id="others-lines"></div></section>
+        </section>
+      </main>
+    </div>
+    <script>
+      let current = null;
+      const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+      const money = (v) => brl.format(Number(v || 0));
+      const signed = (v) => `${Number(v || 0) > 0 ? "+" : ""}${money(v)}`;
+      function table(rows, columns) {
+        if (!rows.length) return "<p>Nenhum dado carregado ainda.</p>";
+        return `<table><thead><tr>${columns.map(c => `<th>${c.h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${columns.map(c => `<td class="${c.cls || ""}">${c.f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+      }
+      async function loadData() {
+        const res = await fetch("/api/dashboard");
+        current = await res.json();
+        const inv = current.invoice;
+        if (!inv) return;
+        document.getElementById("context").textContent = `${inv.airhub} · ${inv.site_name || ""} · ${inv.competence}`;
+        document.getElementById("status").textContent = inv.status;
+        document.getElementById("thread").textContent = inv.thread_id || "-";
+        document.getElementById("labor").textContent = money(inv.total_labor);
+        document.getElementById("others").textContent = money(inv.total_others);
+        document.getElementById("he").textContent = money(current.overtime.reduce((s, r) => s + Number(r.total_value || 0), 0));
+        document.getElementById("decisions").textContent = current.decisions.length;
+        document.getElementById("comparison-count").textContent = `${current.comparison.length} linhas`;
+        document.getElementById("comparison").innerHTML = table(current.comparison, [
+          { h: "Grupo", f: r => r.group_name },
+          { h: "OPEX", f: r => r.opex_line },
+          { h: "Fatura", f: r => r.invoice_line },
+          { h: "OPEX", cls: "money", f: r => money(r.opex_value) },
+          { h: "Fatura", cls: "money", f: r => money(r.invoice_value) },
+          { h: "Desvio", cls: "money", f: r => signed(r.delta_value) },
+          { h: "Risco", f: r => `<span class="risk ${r.risk}">${r.risk}</span>` },
+          { h: "Insight", f: r => r.insight },
+        ]);
+        document.getElementById("overtime").innerHTML = table(current.overtime, [
+          { h: "Causa", f: r => r.cause },
+          { h: "Horas", cls: "num", f: r => Number(r.hours || 0).toLocaleString("pt-BR") },
+          { h: "Valor", cls: "money", f: r => money(r.total_value) },
+          { h: "Ação", f: r => r.action },
+        ]);
+        document.getElementById("others-lines").innerHTML = table(current.others, [
+          { h: "Item", f: r => r.item },
+          { h: "Fornecedor", f: r => r.supplier },
+          { h: "Valor", cls: "money", f: r => money(r.total_value) },
+          { h: "Insight", f: r => r.insight },
+        ]);
+      }
+      async function decision(action) {
+        const res = await fetch("/api/decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoice_id: current?.invoice?.id, action })
+        });
+        const data = await res.json();
+        document.getElementById("draft").value = data.email_body || data.error || "";
+        await loadData();
+      }
+      loadData();
+    </script>
+  </body>
+</html>

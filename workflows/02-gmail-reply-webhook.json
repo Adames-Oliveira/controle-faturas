@@ -1,0 +1,75 @@
+{
+  "name": "Controle de Faturas - Resposta Gmail",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "controle-faturas-resposta",
+        "responseMode": "responseNode"
+      },
+      "id": "decision-webhook",
+      "name": "Decision Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 280],
+      "webhookId": "controle-faturas-resposta"
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{$json.message_id}}",
+        "message": "={{$json.email_body}}",
+        "options": {}
+      },
+      "id": "gmail-reply",
+      "name": "Reply Gmail Thread",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [540, 280],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, action: $json.action, invoice_id: $json.invoice_id } }}"
+      },
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [820, 280]
+    }
+  ],
+  "connections": {
+    "Decision Webhook": {
+      "main": [
+        [
+          {
+            "node": "Reply Gmail Thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Gmail Thread": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

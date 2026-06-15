@@ -1,0 +1,113 @@
+{
+  "name": "Controle de Faturas - Entrada Gmail",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "q": "from:(dhl.com) subject:\"FATURA 3PL_DHL\" has:attachment -in:spam -in:trash"
+        }
+      },
+      "id": "gmail-trigger",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [240, 260],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{$json.id}}",
+        "simple": false,
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "id": "gmail-read",
+      "name": "Read Message + Attachments",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [500, 260],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const binaryKeys = Object.keys($binary || {});\\nconst key = binaryKeys[0];\\nif (!key) throw new Error('Nenhum anexo encontrado');\\nconst attachment = $binary[key];\\nreturn [{\\n  json: {\\n    invoice_id: 'BRAPE1-2026-05',\\n    airhub: 'BRAPE1',\\n    competence: '2026-05',\\n    site_name: 'Recife Meli Air',\\n    supplier: 'DHL',\\n    thread_id: $json.threadId || $json.thread_id,\\n    message_id: $json.id || $json.messageId,\\n    subject: $json.subject,\\n    sender: $json.from?.email || $json.from || '',\\n    attachment_name: attachment.fileName || 'fatura.xlsx',\\n    attachment_base64: attachment.data\\n  }\\n}];"
+      },
+      "id": "shape-payload",
+      "name": "Shape Intake Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://SEU_APP/api/intake",
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{JSON.stringify($json)}}"
+      },
+      "id": "send-to-app",
+      "name": "Send to Python App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 260]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Message + Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Message + Attachments": {
+      "main": [
+        [
+          {
+            "node": "Shape Intake Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Intake Payload": {
+      "main": [
+        [
+          {
+            "node": "Send to Python App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
